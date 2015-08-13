@@ -32,7 +32,4 @@ class UserInterface extends Actor {
   def printReadError(line: String) = {
     println("Invalid command: " + line)
   }
-  
-  
-  //RtrPrefixStore.readPrefixesFromFile("/home/ponken/Work/RPKI/test.prefix")
 }
