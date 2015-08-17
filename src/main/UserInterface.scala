@@ -6,8 +6,6 @@ import jline.console.completer.FileNameCompleter
 import jline.console.completer.ArgumentCompleter
 import jline.console.completer.StringsCompleter
 import java.nio.file.{Paths, Files}
-import java.io.File
-
 class UserInterface extends Actor {
   
   interactiveShell()
@@ -55,10 +53,7 @@ class UserInterface extends Actor {
     if(args.length != 2){
       return false
     } else {
-      if(args(1).startsWith("~" + File.separator)) {
-        args(1) = System.getProperty("user.home") + args(1).substring(1);
-      }
-      return Files.exists(Paths.get(args(1)))
+      return Files.exists(Paths.get(RtrPrefixStore.convertFilepathTilde(args(1))))
     }
   }
   
@@ -72,6 +67,6 @@ class UserInterface extends Actor {
       case "read" => RtrPrefixStore.readPrefixesFromFile(args(1))
       case "show" => RtrPrefixStore.printPrefixes()
     }
-    
   }
+  
 }
