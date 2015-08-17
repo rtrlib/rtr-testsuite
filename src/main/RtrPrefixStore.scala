@@ -24,4 +24,8 @@ object RtrPrefixStore {
      return prefixSet.toSet
    }
    
+   def printPrefixes() = {
+     
+   }
+   
 }
