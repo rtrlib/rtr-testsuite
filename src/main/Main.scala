@@ -38,15 +38,19 @@ object Main {
 
   def main(args: Array[String]): Unit = {
     println("RTRTestSuite")
-    new Main()
+    new Main(args)
   }
 }
 
-class Main {
+class Main(args: Array[String]) {
   implicit val actorSystem = akka.actor.ActorSystem()
+  var port : Int = 8282
+  if (args.length >= 2 && args(0) == "-p"){
+    port = args(1).toInt
+  }
   private def runRtrServer(): RTRServer = {
     val rtrServer = new RTRServer(
-      port = 8888,
+      port = port,
       closeOnError = false,
       sendNotify = false,
       getCurrentCacheSerial = {
