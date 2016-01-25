@@ -13,7 +13,7 @@ object RtrPrefixStore {
     while(lines.hasNext){
       var line = lines.next()
       if(line.length() > 0 && line(0) != '#'){
-        val prefix = readPrefix(line)
+        val prefix = readPrefixLine(line)
         line(0) match {
           case '+' => prefixSet.add(prefix)
           case '-' => prefixSet.remove(prefix)
@@ -33,12 +33,16 @@ object RtrPrefixStore {
    }
    
    // Prefix format in file is: [+,-] [asn] [prefix] [maxlen]
-   def readPrefix(line: String) : RtrPrefix = {
+   def readPrefixLine(line: String) : RtrPrefix = {
         var prefix_parts : Array[String] = line.split(" ")
-        var asn : Asn = new Asn(prefix_parts(1).toLong)
-        var prefix : IpRange = IpRange.parse(prefix_parts(2))
-        var maxLen : Int = prefix_parts(3).toInt
-        new RtrPrefix(asn, prefix, Some(maxLen))
+        readPrefix(prefix_parts(1), prefix_parts(2), prefix_parts(3))
+   }
+   
+   def readPrefix(asn_str: String, prefix_str: String, maxLen_str: String) : RtrPrefix = {
+     var asn : Asn = new Asn(asn_str.toLong)
+     var prefix : IpRange = IpRange.parse(prefix_str)
+     var maxLen : Int = maxLen_str.toInt
+     new RtrPrefix(asn, prefix, Some(maxLen))
    }
    
   def convertFilepathTilde(path: String) : String = {

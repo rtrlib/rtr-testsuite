@@ -45,6 +45,8 @@ class UserInterface extends Actor {
       case "read" => checkReadCommand(args)
       case "show" => true
       case "quit" => true
+      case "add" => checkPrefixParams(args)
+      case "remove" => checkPrefixParams(args)
       case _ => false
     }
     return isValid
@@ -57,6 +59,9 @@ class UserInterface extends Actor {
       return Files.exists(Paths.get(RtrPrefixStore.convertFilepathTilde(args(1))))
     }
   }
+  def checkPrefixParams(args : Array[String]): Boolean = {
+    return (args.length != 3)
+  }
   
   def printReadError(line: String) = {
     println("Invalid command: " + line)
@@ -68,6 +73,16 @@ class UserInterface extends Actor {
       case "read" => RtrPrefixStore.readPrefixesFromFile(args(1))
       case "show" => RtrPrefixStore.printPrefixes()
       case "quit" => System.exit(1)
+      case "add" => 
+        var prefix = RtrPrefixStore.readPrefix(args(1), args(2), args(3))
+        RtrPrefixStore.prefixSet.add(prefix)
+      case "remove" => 
+        var prefix = RtrPrefixStore.readPrefix(args(1), args(2), args(3))
+        if (RtrPrefixStore.prefixSet.contains(prefix)) {
+          RtrPrefixStore.prefixSet.remove(prefix)
+        } else {
+          println("No prefix removed")
+        }
     }
   }
   
