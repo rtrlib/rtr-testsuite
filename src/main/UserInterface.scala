@@ -44,6 +44,7 @@ class UserInterface extends Actor {
     val isValid = args(0) match {
       case "read" => checkReadCommand(args)
       case "show" => true
+      case "quit" => true
       case _ => false
     }
     return isValid
@@ -66,6 +67,7 @@ class UserInterface extends Actor {
     var success = args(0) match {
       case "read" => RtrPrefixStore.readPrefixesFromFile(args(1))
       case "show" => RtrPrefixStore.printPrefixes()
+      case "quit" => System.exit(1)
     }
   }
   
