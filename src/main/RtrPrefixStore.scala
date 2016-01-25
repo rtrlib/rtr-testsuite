@@ -32,6 +32,25 @@ object RtrPrefixStore {
      
    }
    
+   def searchAsn(search_str: String) = {
+     println("ASN\tPrefix\tMax. Length")
+     var asn : Asn = new Asn(search_str.toLong)
+     prefixSet.foreach {
+       prefix => if (asn == prefix.asn) {
+         println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))
+       }
+     }
+   }
+   def searchPrefix(search_str: String) = {
+     println("ASN\tPrefix\tMax. Length")
+     var pref : IpRange = IpRange.parse(search_str)
+     prefixSet.foreach {
+       prefix => if (pref == prefix.prefix) {
+         println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))
+       }
+     }
+   }
+   
    // Prefix format in file is: [+,-] [asn] [prefix] [maxlen]
    def readPrefixLine(line: String) : RtrPrefix = {
         var prefix_parts : Array[String] = line.split(" ")

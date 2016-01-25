@@ -47,6 +47,8 @@ class UserInterface extends Actor {
       case "quit" => true
       case "add" => checkPrefixParams(args)
       case "remove" => checkPrefixParams(args)
+      case "clear" => true
+      case "search" => checkSearchCommand(args)
       case _ => false
     }
     return isValid
@@ -60,7 +62,18 @@ class UserInterface extends Actor {
     }
   }
   def checkPrefixParams(args : Array[String]): Boolean = {
-    return (args.length != 3)
+    return (args.length == 4)
+  }
+  def checkSearchCommand(args: Array[String]): Boolean = {
+    if (args.length != 3) {
+      return false
+    } else {
+      var success = args(1) match {
+        case "asn" => true
+        case "prefix" => true
+      }
+      return success
+    }
   }
   
   def printReadError(line: String) = {
@@ -83,6 +96,13 @@ class UserInterface extends Actor {
         } else {
           println("No prefix removed")
         }
+      case "clear" => RtrPrefixStore.prefixSet.clear()
+      case "search" => 
+        var _ = args(1) match {
+          case "asn" => RtrPrefixStore.searchAsn(args(2))
+          case "prefix" => RtrPrefixStore.searchPrefix(args(2))
+        }
+     
     }
   }
   
