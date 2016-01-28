@@ -33,7 +33,7 @@ import rtr.RTRServer
 import models.RtrPrefix
 import akka.actor.Props
 import net.ripe.ipresource._
-
+import scala.util.Random
 object Main {
 
   def main(args: Array[String]): Unit = {
@@ -42,6 +42,7 @@ object Main {
   }
 }
 
+
 class Main(args: Array[String]) {
   implicit val actorSystem = akka.actor.ActorSystem()
   var port : Int = 8282
@@ -49,6 +50,7 @@ class Main(args: Array[String]) {
     port = args(1).toInt
   }
   private def runRtrServer(): RTRServer = {
+    var sessionID = Random.nextInt(65536).toShort
     val rtrServer = new RTRServer(
       port = port,
       closeOnError = false,
@@ -60,7 +62,7 @@ class Main(args: Array[String]) {
         RtrPrefixStore.getCurrentPrefixes
       },
       getCurrentSessionId = {
-        () => 1
+        () => sessionID
       },
       hasTrustAnchorsEnabled = {
         () => false
