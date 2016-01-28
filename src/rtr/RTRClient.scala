@@ -36,7 +36,7 @@ import java.net.InetSocketAddress
 import grizzled.slf4j.Logger
 import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder
 
-class RTRClient(val port: Int) {
+class RTRClient(val host: String, val port: Int) {
 
   val logger = Logger[this.type]
 
@@ -64,7 +64,7 @@ class RTRClient(val port: Int) {
         clientHandler)
     }
   })
-  val channelFuture: ChannelFuture = bootstrap.connect(new InetSocketAddress("localhost", port))
+  val channelFuture: ChannelFuture = bootstrap.connect(new InetSocketAddress(host, port))
   channelFuture.await(1000)
 
   def sendPdu(pduToSend: Pdu) { sendAny(pduToSend) }

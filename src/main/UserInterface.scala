@@ -49,6 +49,7 @@ class UserInterface extends Actor {
       case "remove" => checkPrefixParams(args)
       case "clear" => true
       case "search" => checkSearchCommand(args)
+      case "load" => true
       case _ => false
     }
     return isValid
@@ -102,7 +103,14 @@ class UserInterface extends Actor {
           case "asn" => RtrPrefixStore.searchAsn(args(2))
           case "prefix" => RtrPrefixStore.searchPrefix(args(2))
         }
-     
+      case "load" =>
+        //var port : Int = args(2).toInt
+        //val rtrclient = new rtr.RTRClient(args(1), port)
+        val rtrclient = new rtr.RTRClient("rpki-validator.realmv6.org", 8282)
+        rtrclient.sendPdu(new rtr.ResetQueryPdu())
+        var pdus : List[rtr.Pdu] = rtrclient.getResponse()
+        pdus.foreach { x => println(x) }
+        
     }
   }
   
