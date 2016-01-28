@@ -42,9 +42,10 @@ class UserInterface extends Actor {
   def isValidCommand(line: String) : Boolean = {
     var args = line.split(" ")
     val isValid = args(0) match {
-      case "read" => checkReadCommand(args)
       case "show" => true
       case "quit" => true
+      case "addfile" => checkReadCommand(args)
+      case "removefile" => checkReadCommand(args)
       case "add" => checkPrefixParams(args)
       case "remove" => checkPrefixParams(args)
       case "clear" => true
@@ -84,20 +85,13 @@ class UserInterface extends Actor {
   def executeCommand(line: String) = {
     var args = line.split(" ")
     var success = args(0) match {
-      case "read" => RtrPrefixStore.readPrefixesFromFile(args(1))
       case "show" => RtrPrefixStore.printPrefixes()
       case "quit" => System.exit(1)
-      case "add" => 
-        var prefix = RtrPrefixStore.readPrefix(args(1), args(2), args(3))
-        RtrPrefixStore.prefixSet.add(prefix)
-      case "remove" => 
-        var prefix = RtrPrefixStore.readPrefix(args(1), args(2), args(3))
-        if (RtrPrefixStore.prefixSet.contains(prefix)) {
-          RtrPrefixStore.prefixSet.remove(prefix)
-        } else {
-          println("No prefix removed")
-        }
-      case "clear" => RtrPrefixStore.prefixSet.clear()
+      case "addfile" => RtrPrefixStore.addPrefixesFromFile(args(1))
+      case "removefile" => RtrPrefixStore.removePrefixesFromFile(args(1))
+      case "add" => RtrPrefixStore.addPrefixString(args(1), args(2), args(3))
+      case "remove" => RtrPrefixStore.removePrefixString(args(1), args(2), args(3))
+      case "clear" => RtrPrefixStore.clear()
       case "search" => 
         var _ = args(1) match {
           case "asn" => RtrPrefixStore.searchAsn(args(2))

@@ -6,15 +6,44 @@ import net.ripe.ipresource._
 import java.nio.file.{Paths, Files}
 import java.io.File
 object RtrPrefixStore {
-   val prefixSet : collection.mutable.Set[RtrPrefix] = collection.mutable.Set()
+   private val prefixSet : collection.mutable.Set[RtrPrefix] = collection.mutable.Set()
+   def addPrefix(prefix: RtrPrefix) {
+     prefixSet.add(prefix)
+   }
+   def removePrefix(prefix: RtrPrefix) {
+     if (prefixSet.contains(prefix)) {
+       prefixSet.remove(prefix)
+     } else {
+       println("No prefix removed")
+     }
+   }
+   def clear() {
+     prefixSet.clear()
+   }
+   def addPrefixString(asn_str: String, prefix_str: String, maxLen_str: String) {
+     var prefix :RtrPrefix = readPrefix(asn_str, prefix_str, maxLen_str)
+     addPrefix(prefix)
+   }
+   def removePrefixString(asn_str: String, prefix_str: String, maxLen_str: String) {
+     var prefix :RtrPrefix = readPrefix(asn_str, prefix_str, maxLen_str)
+     removePrefix(prefix)
+   }
+   
+   def addPrefixesFromFile(filename: String) = {
+     readPrefixesFromFile('+', filename)
+   }
+   
+   def removePrefixesFromFile(filename: String) = {
+     readPrefixesFromFile('-', filename)
+   }
   
-   def readPrefixesFromFile(filename: String) = {
+   private def readPrefixesFromFile(add_remove: Char, filename: String) = {
     val lines = Source.fromFile(convertFilepathTilde(filename)).getLines
     while(lines.hasNext){
       var line = lines.next()
       if(line.length() > 0 && line(0) != '#'){
         val prefix = readPrefixLine(line)
-        line(0) match {
+        add_remove match {
           case '+' => prefixSet.add(prefix)
           case '-' => prefixSet.remove(prefix)
         }
@@ -51,13 +80,13 @@ object RtrPrefixStore {
      }
    }
    
-   // Prefix format in file is: [+,-] [asn] [prefix] [maxlen]
-   def readPrefixLine(line: String) : RtrPrefix = {
+   // Prefix format in file is: [asn] [prefix] [maxlen]
+   private def readPrefixLine(line: String) : RtrPrefix = {
         var prefix_parts : Array[String] = line.split(" ")
-        readPrefix(prefix_parts(1), prefix_parts(2), prefix_parts(3))
+        readPrefix(prefix_parts(0), prefix_parts(1), prefix_parts(2))
    }
    
-   def readPrefix(asn_str: String, prefix_str: String, maxLen_str: String) : RtrPrefix = {
+   private def readPrefix(asn_str: String, prefix_str: String, maxLen_str: String) : RtrPrefix = {
      var asn : Asn = new Asn(asn_str.toLong)
      var prefix : IpRange = IpRange.parse(prefix_str)
      var maxLen : Int = maxLen_str.toInt
