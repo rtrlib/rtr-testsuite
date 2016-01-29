@@ -35,6 +35,7 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory
 import java.net.InetSocketAddress
 import grizzled.slf4j.Logger
 import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder
+import models.RtrPrefix
 
 class RTRClient(val host: String, val port: Int) {
 
@@ -106,6 +107,40 @@ class RTRClient(val host: String, val port: Int) {
 
   def close() {
     channelFuture.getChannel.close().await()
+  }
+  
+  private def receivedEndOfData: Boolean = {
+    receivedPdus.foreach { x => 
+      x match { 
+        case EndOfDataPdu(_,_) => 
+          return true
+        case _ => 
+       }
+    }
+    return false
+  }
+  
+  def getAllROAs: List[RtrPrefix] = {
+    sendPdu(new rtr.ResetQueryPdu())
+    var waited: Int = 0
+    while(!receivedEndOfData && waited < 100000) {
+      Thread.sleep(5)
+      waited += 5
+    }
+    println("EndOfDataPdu received")
+    var roas: List[RtrPrefix] = List[RtrPrefix]()
+    getAllResponses.foreach { 
+      x => x match {
+        case pdu: IPv4PrefixAnnouncePdu => 
+          var prefix: models.RtrPrefix = Pdus.convertIPv4ToRtrPrefix(pdu)
+          roas = roas ++ List(prefix)
+        case pdu: IPv6PrefixAnnouncePdu => 
+          var prefix: models.RtrPrefix = Pdus.convertIPv6ToRtrPrefix(pdu)
+          roas = roas ++ List(prefix)
+        case _ => 
+      }
+    }
+    roas
   }
 }
 

@@ -36,6 +36,7 @@ import net.ripe.ipresource._
 import java.math.BigInteger
 import scala.util.Random
 import java.net.SocketAddress
+import models.RtrPrefix
 
 sealed trait Pdu {
   def protocolVersion: Byte = 0
@@ -234,6 +235,20 @@ object Pdus {
   } catch {
     case e: IndexOutOfBoundsException =>
       Left(BadData(ErrorPdu.CorruptData, buffer.array()))
+  }
+  
+  def convertIPv4ToRtrPrefix(pdu: IPv4PrefixAnnouncePdu): RtrPrefix = {
+    var asn: Asn = pdu.asn
+    var prefix : IpRange = IpRange.prefix(pdu.ipv4PrefixStart, pdu.prefixLength)
+    var maxLen: Byte = pdu.maxLength
+    new RtrPrefix(asn,prefix,Some(maxLen))
+  }
+  
+  def convertIPv6ToRtrPrefix(pdu: IPv6PrefixAnnouncePdu): RtrPrefix = {
+    var asn: Asn = pdu.asn
+    var prefix : IpRange = IpRange.prefix(pdu.ipv6PrefixStart, pdu.prefixLength)
+    var maxLen: Byte = pdu.maxLength
+    new RtrPrefix(asn,prefix,Some(maxLen))
   }
 
   private def convertToPrependedByteArray(value: BigInteger, bytesNeeded: Int): Array[Byte] = {
