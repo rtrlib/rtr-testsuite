@@ -108,13 +108,16 @@ class RtrSessionHandler[T] (remoteAddress: T,
           val prefixLength: Int = prefix.getPrefixLength
           val maxLength: Int = rtrPrefix.maxPrefixLength.getOrElse(prefixLength)
           val asn: Asn = rtrPrefix.asn
-
-          prefix.getStart match {
-            case ipv4: Ipv4Address =>
-              responsePdus = responsePdus :+ IPv4PrefixAnnouncePdu(ipv4, prefixLength.toByte, maxLength.toByte, asn)
-            case ipv6: Ipv6Address =>
-              responsePdus = responsePdus :+ IPv6PrefixAnnouncePdu(ipv6, prefixLength.toByte, maxLength.toByte, asn)
-            case _ => assert(false)
+          val flags : Byte = rtrPrefix.flags
+          
+          if(flags == 1){
+            prefix.getStart match {
+              case ipv4: Ipv4Address =>
+                responsePdus = responsePdus :+ IPv4PrefixPdu(ipv4, prefixLength.toByte, maxLength.toByte, asn, flags)
+              case ipv6: Ipv6Address =>
+                responsePdus = responsePdus :+ IPv6PrefixPdu(ipv6, prefixLength.toByte, maxLength.toByte, asn, flags)
+              case _ => assert(false)
+            }
           }
         }
         responsePdus :+ EndOfDataPdu(sessionId = currentSessionId, serial = serialNumber)
@@ -122,9 +125,27 @@ class RtrSessionHandler[T] (remoteAddress: T,
   }
 
 
-  private def processSerialQuery(sessionId: Short, serial: Long) = {
-    if (sessionId == getCurrentSessionId() && serial == getCurrentCacheSerial()) {
-      List(CacheResponsePdu(sessionId = sessionId), EndOfDataPdu(sessionId = sessionId, serial = serial))
+  private def processSerialQuery(sessionId: Short, serial: Int) = {
+    if (sessionId == getCurrentSessionId()) {
+      
+      var responsePdus: List[Pdu] = List(CacheResponsePdu(sessionId=sessionId))
+      getCurrentRtrPrefixes().foreach { rtrPrefix =>
+        val prefix: IpRange = rtrPrefix.prefix
+        val prefixLength: Int = prefix.getPrefixLength
+        val maxLength: Int = rtrPrefix.maxPrefixLength.getOrElse(prefixLength)
+        val asn: Asn = rtrPrefix.asn
+        val flags: Byte = rtrPrefix.flags
+        if (rtrPrefix.serialNumber > serial) {
+          prefix.getStart match {
+            case ipv4: Ipv4Address =>
+              responsePdus = responsePdus :+ IPv4PrefixPdu(ipv4, prefixLength.toByte, maxLength.toByte, asn, flags)
+            case ipv6: Ipv6Address =>
+              responsePdus = responsePdus :+ IPv6PrefixPdu(ipv6, prefixLength.toByte, maxLength.toByte, asn, flags)
+            case _ => assert(false)
+          }
+        }
+      }
+      responsePdus :+ EndOfDataPdu(sessionId=sessionId, RTRServer.getSerialNumber())
     } else {
       List(CacheResetPdu())
     }

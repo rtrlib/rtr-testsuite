@@ -34,7 +34,7 @@ import Scalaz._
 import net.ripe.ipresource.{ IpRange, Asn }
 import lib.NumberResources._
 
-case class RtrPrefix(asn: Asn, prefix: IpRange, maxPrefixLength: Option[Int] = None) {
+case class RtrPrefix(asn: Asn, prefix: IpRange, maxPrefixLength: Option[Int] = None, flags : Byte, serialNumber : Int) {
   val interval = NumberResourceInterval(prefix.getStart, prefix.getEnd)
   def effectiveMaxPrefixLength = maxPrefixLength.getOrElse(prefix.getPrefixLength)
 }

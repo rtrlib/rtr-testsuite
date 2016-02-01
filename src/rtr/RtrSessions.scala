@@ -52,7 +52,7 @@ class RtrSessions[T](getCurrentCacheSerial: () => Int,
     handlerFor(id).disconnect()
   }
 
-  def serialNotify(serial: Long) = {
+  def serialNotify(serial: Int) = {
     val pdu = new SerialNotifyPdu(getCurrentSessionId(), serial)
     handlers.values.foreach(_.serialNotify(pdu))
     pdu

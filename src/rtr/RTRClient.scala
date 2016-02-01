@@ -120,7 +120,7 @@ class RTRClient(val host: String, val port: Int) {
     return false
   }
   
-  def getAllROAs: List[RtrPrefix] = {
+  def getAllROAs: List[Pdu] = {
     sendPdu(new rtr.ResetQueryPdu())
     var waited: Int = 0
     while(!receivedEndOfData && waited < 100000) {
@@ -128,15 +128,13 @@ class RTRClient(val host: String, val port: Int) {
       waited += 5
     }
     println("EndOfDataPdu received")
-    var roas: List[RtrPrefix] = List[RtrPrefix]()
+    var roas: List[Pdu] = List[Pdu]()
     getAllResponses.foreach { 
       x => x match {
-        case pdu: IPv4PrefixAnnouncePdu => 
-          var prefix: models.RtrPrefix = Pdus.convertIPv4ToRtrPrefix(pdu)
-          roas = roas ++ List(prefix)
-        case pdu: IPv6PrefixAnnouncePdu => 
-          var prefix: models.RtrPrefix = Pdus.convertIPv6ToRtrPrefix(pdu)
-          roas = roas ++ List(prefix)
+        case pdu: IPv4PrefixPdu => 
+          roas = roas ++ List(pdu)
+        case pdu: IPv6PrefixPdu => 
+          roas = roas ++ List(pdu)
         case _ => 
       }
     }

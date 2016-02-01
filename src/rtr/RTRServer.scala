@@ -50,6 +50,13 @@ object RTRServer {
   final val MAXIMUM_FRAME_LENGTH = 16777216 // 16MB Note: this should be big enough to contain all pdus when we respond with data
 
   val allChannels: ChannelGroup = new DefaultChannelGroup("rtr-server")
+  var serialNum : Int = 0;
+  def getSerialNumber() : Int = {
+    return serialNum
+  }
+  def incSerialNumber() : Unit = {
+    serialNum += 1
+  }
 }
 
 class RTRServer(port: Int, closeOnError: Boolean, sendNotify: Boolean,
@@ -96,6 +103,11 @@ class RTRServer(port: Int, closeOnError: Boolean, sendNotify: Boolean,
     bootstrap.bind(listenAddress)
 
     logger.info("RTR server listening on " + listenAddress.toString)
+  }
+  
+  def serialNotify(){
+    var serialNotifyPDU = rtrSessions.serialNotify(RTRServer.getSerialNumber())
+    serverHandler.notifyChildren(serialNotifyPDU);
   }
 
   def registerShutdownHook() {

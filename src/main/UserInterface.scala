@@ -6,7 +6,7 @@ import jline.console.completer.FileNameCompleter
 import jline.console.completer.ArgumentCompleter
 import jline.console.completer.StringsCompleter
 import java.nio.file.{Paths, Files}
-class UserInterface extends Actor {
+class UserInterface(prefStore : RtrPrefixStore) extends Actor {
   
   interactiveShell()
 
@@ -60,7 +60,7 @@ class UserInterface extends Actor {
     if(args.length != 2){
       return false
     } else {
-      return Files.exists(Paths.get(RtrPrefixStore.convertFilepathTilde(args(1))))
+      return Files.exists(Paths.get(prefStore.convertFilepathTilde(args(1))))
     }
   }
   def checkPrefixParams(args : Array[String]): Boolean = {
@@ -85,23 +85,23 @@ class UserInterface extends Actor {
   def executeCommand(line: String) = {
     var args = line.split(" ")
     var success = args(0) match {
-      case "show" => RtrPrefixStore.printPrefixes()
+      case "show" => prefStore.printPrefixes()
       case "quit" => System.exit(1)
-      case "addfile" => RtrPrefixStore.addPrefixesFromFile(args(1))
-      case "removefile" => RtrPrefixStore.removePrefixesFromFile(args(1))
-      case "add" => RtrPrefixStore.addPrefixString(args(1), args(2), args(3))
-      case "remove" => RtrPrefixStore.removePrefixString(args(1), args(2), args(3))
-      case "clear" => RtrPrefixStore.clear()
+      case "addfile" => prefStore.addPrefixesFromFile(args(1))
+      case "removefile" => prefStore.removePrefixesFromFile(args(1))
+      case "add" => prefStore.addPrefixString(args(1), args(2), args(3))
+      case "remove" => prefStore.removePrefixString(args(1), args(2), args(3))
+      case "clear" => prefStore.clear()
       case "search" => 
         var _ = args(1) match {
-          case "asn" => RtrPrefixStore.searchAsn(args(2))
-          case "prefix" => RtrPrefixStore.searchPrefix(args(2))
+          case "asn" => prefStore.searchAsn(args(2))
+          case "prefix" => prefStore.searchPrefix(args(2))
         }
       case "load" =>
         var port : Int = args(2).toInt
         val rtrclient = new rtr.RTRClient(args(1), port)
-        var pdus : List[models.RtrPrefix] = rtrclient.getAllROAs
-        pdus.foreach { x => RtrPrefixStore.addPrefix(x) }
+        var pdus : List[rtr.Pdu] = rtrclient.getAllROAs
+        prefStore.addPrefixes(pdus)
         rtrclient.close()
     }
   }

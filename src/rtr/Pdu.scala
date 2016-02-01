@@ -61,7 +61,7 @@ case class BadData(errorCode: Int, content: Array[Byte])
 /**
  * See: http://tools.ietf.org/html/draft-ietf-sidr-rpki-rtr-16#section-5.1
  */
-case class SerialNotifyPdu(sessionId: Pdu.SessionId, serial: Long) extends Pdu {
+case class SerialNotifyPdu(sessionId: Pdu.SessionId, serial: Int) extends Pdu {
   override def pduType = PduTypes.SerialNotify
   override def headerShort = sessionId
   override def length = 12
@@ -73,7 +73,7 @@ case class SerialNotifyPdu(sessionId: Pdu.SessionId, serial: Long) extends Pdu {
 /**
  * See: http://tools.ietf.org/html/draft-ietf-sidr-rpki-rtr-16#section-5.2
  */
-case class SerialQueryPdu(sessionId: Pdu.SessionId, serial: Long) extends Pdu {
+case class SerialQueryPdu(sessionId: Pdu.SessionId, serial: Int) extends Pdu {
   override def pduType = PduTypes.SerialQuery
   override def headerShort = sessionId
   override def length = 12
@@ -104,7 +104,7 @@ case class CacheResponsePdu(sessionId: Pdu.SessionId) extends Pdu {
 /**
  * See: http://tools.ietf.org/html/draft-ietf-sidr-rpki-rtr-16#section-5.5
  */
-case class IPv4PrefixAnnouncePdu(ipv4PrefixStart: Ipv4Address, prefixLength: Byte, maxLength: Byte, asn: Asn) extends Pdu {
+case class IPv4PrefixPdu(ipv4PrefixStart: Ipv4Address, prefixLength: Byte, maxLength: Byte, asn: Asn, flags : Byte) extends Pdu {
   override def pduType = PduTypes.IPv4Prefix
   override def length = 20
   override def toPrettyContentString: String = "Add IPv4 Prefix (prefix: " + ipv4PrefixStart + "/" + prefixLength + ", maxLength: " + maxLength + ", Asn: " + asn + ")"
@@ -113,7 +113,7 @@ case class IPv4PrefixAnnouncePdu(ipv4PrefixStart: Ipv4Address, prefixLength: Byt
 /**
  * See: http://tools.ietf.org/html/draft-ietf-sidr-rpki-rtr-16#section-5.6
  */
-case class IPv6PrefixAnnouncePdu(ipv6PrefixStart: Ipv6Address, prefixLength: Byte, maxLength: Byte, asn: Asn) extends Pdu {
+case class IPv6PrefixPdu(ipv6PrefixStart: Ipv6Address, prefixLength: Byte, maxLength: Byte, asn: Asn, flags : Byte) extends Pdu {
   override def pduType = PduTypes.IPv6Prefix
   override def length = 32
   override def toPrettyContentString: String = "Add IPv6 Prefix (prefix: " + ipv6PrefixStart + "/" + prefixLength + ", maxLength: " + maxLength + ", Asn: " + asn + ")"
@@ -201,8 +201,8 @@ object Pdus {
       case errorPdu @ ErrorPdu(errorCode, causingPdu, errorText) => writeErrorPduPayload(buffer, errorPdu, causingPdu)
       case ResetQueryPdu() => // no payload
       case CacheResponsePdu(_) => // no payload (sessionId is in header)
-      case IPv4PrefixAnnouncePdu(prefix, length, maxLength, asn) => writeIPv4PrefixAnnouncePduPayload(buffer, prefix, length, maxLength, asn)
-      case IPv6PrefixAnnouncePdu(prefix, length, maxLength, asn) => writeIPv6PrefixAnnouncePduPayload(buffer, prefix, length, maxLength, asn)
+      case IPv4PrefixPdu(prefix, length, maxLength, asn, flags) => writeIPv4PrefixAnnouncePduPayload(buffer, prefix, length, maxLength, asn, flags)
+      case IPv6PrefixPdu(prefix, length, maxLength, asn, flags) => writeIPv6PrefixAnnouncePduPayload(buffer, prefix, length, maxLength, asn, flags)
       case EndOfDataPdu(_, serial) => buffer.writeInt(serial.toInt)
       case CacheResetPdu() => // no payload
     }
@@ -237,19 +237,6 @@ object Pdus {
       Left(BadData(ErrorPdu.CorruptData, buffer.array()))
   }
   
-  def convertIPv4ToRtrPrefix(pdu: IPv4PrefixAnnouncePdu): RtrPrefix = {
-    var asn: Asn = pdu.asn
-    var prefix : IpRange = IpRange.prefix(pdu.ipv4PrefixStart, pdu.prefixLength)
-    var maxLen: Byte = pdu.maxLength
-    new RtrPrefix(asn,prefix,Some(maxLen))
-  }
-  
-  def convertIPv6ToRtrPrefix(pdu: IPv6PrefixAnnouncePdu): RtrPrefix = {
-    var asn: Asn = pdu.asn
-    var prefix : IpRange = IpRange.prefix(pdu.ipv6PrefixStart, pdu.prefixLength)
-    var maxLen: Byte = pdu.maxLength
-    new RtrPrefix(asn,prefix,Some(maxLen))
-  }
 
   private def convertToPrependedByteArray(value: BigInteger, bytesNeeded: Int): Array[Byte] = {
     var valueBytes = value.toByteArray
@@ -270,8 +257,8 @@ object Pdus {
     buffer.writeBytes(errorPdu.errorTextBytes)
   }
 
-  private def writeIPv4PrefixAnnouncePduPayload(buffer: ChannelBuffer, prefix: Ipv4Address, length: Byte, maxLength: Byte, asn: Asn): Unit = {
-    buffer.writeByte(1)
+  private def writeIPv4PrefixAnnouncePduPayload(buffer: ChannelBuffer, prefix: Ipv4Address, length: Byte, maxLength: Byte, asn: Asn, flags : Byte): Unit = {
+    buffer.writeByte(flags)
     buffer.writeByte(length)
     buffer.writeByte(maxLength)
     buffer.writeByte(0)
@@ -279,8 +266,8 @@ object Pdus {
     buffer.writeBytes(convertToPrependedByteArray(asn.getValue, 4))
   }
 
-  private def writeIPv6PrefixAnnouncePduPayload(buffer: ChannelBuffer, prefix: Ipv6Address, length: Byte, maxLength: Byte, asn: Asn): Unit = {
-    buffer.writeByte(1)
+  private def writeIPv6PrefixAnnouncePduPayload(buffer: ChannelBuffer, prefix: Ipv6Address, length: Byte, maxLength: Byte, asn: Asn, flags : Byte): Unit = {
+    buffer.writeByte(flags)
     buffer.writeByte(length)
     buffer.writeByte(maxLength)
     buffer.writeByte(0)
@@ -289,12 +276,12 @@ object Pdus {
   }
 
   private def parseSerialNotifyPdu(buffer: ChannelBuffer, sessionId: Pdu.SessionId): Right[Nothing, SerialNotifyPdu] = {
-    val serial = buffer.readUnsignedInt()
+    val serial = buffer.readUnsignedInt().asInstanceOf[Int]
     Right(SerialNotifyPdu(sessionId, serial))
   }
 
   private def parseSerialQueryPdu(buffer: ChannelBuffer, sessionId: Pdu.SessionId): Right[Nothing, SerialQueryPdu] = {
-    val serial = buffer.readUnsignedInt()
+    val serial = buffer.readUnsignedInt().asInstanceOf[Int]
     Right(SerialQueryPdu(sessionId, serial))
   }
 
@@ -317,22 +304,19 @@ object Pdus {
   }
 
   private def parseIPv4PrefixPdu(buffer: ChannelBuffer): Either[BadData, Pdu] = {
-    buffer.readByte() match {
-      case 1 =>
+        val flags = buffer.readByte()
         val length = buffer.readByte()
         val maxLenght = buffer.readByte()
         buffer.skipBytes(1)
         val prefix = new Ipv4Address(buffer.readUnsignedInt())
         val asn = new Asn(buffer.readUnsignedInt())
-        Right(IPv4PrefixAnnouncePdu(prefix, length, maxLenght, asn))
-      case _ =>
+        Right(IPv4PrefixPdu(prefix, length, maxLenght, asn,flags))
         // TODO: Support withdrawals
-        Left(BadData(ErrorPdu.UnsupportedPduType, buffer.array))
-    }
+        //Left(BadData(ErrorPdu.UnsupportedPduType, buffer.array))
+    
   }
   private def parseIPv6PrefixPdu(buffer: ChannelBuffer): Either[BadData, Pdu] = {
-    buffer.readByte() match {
-      case 1 =>
+        val flags = buffer.readByte()
         val length = buffer.readByte()
         val maxLenght = buffer.readByte()
         buffer.skipBytes(1)
@@ -342,11 +326,7 @@ object Pdus {
 
         buffer.skipBytes(16)
         val asn = new Asn(buffer.readUnsignedInt())
-        Right(IPv6PrefixAnnouncePdu(prefix, length, maxLenght, asn))
-      case _ =>
-        // TODO: Support withdrawals
-        Left(BadData(ErrorPdu.UnsupportedPduType, buffer.array))
-    }
+        Right(IPv6PrefixPdu(prefix, length, maxLenght, asn,flags))
   }
 }
 

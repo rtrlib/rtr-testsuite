@@ -42,30 +42,23 @@ object Main {
   }
 }
 
-object SerialNumber {
-  val serialNum = 0;
-  def getSerialNumber() : Int = {
-    return serialNum
-  }
-}
-
 class Main(args: Array[String]) {
   implicit val actorSystem = akka.actor.ActorSystem()
   var port : Int = 8282
   if (args.length >= 2 && args(0) == "-p"){
     port = args(1).toInt
   }
-  private def runRtrServer(): RTRServer = {
+  private def runRtrServer(prefStore : RtrPrefixStore): RTRServer = {
     var sessionID = Random.nextInt(65536).toShort
     val rtrServer = new RTRServer(
       port = port,
       closeOnError = false,
       sendNotify = false,
       getCurrentCacheSerial = {
-        () => SerialNumber.getSerialNumber;
+        () => RTRServer.getSerialNumber;
       },
       getCurrentRtrPrefixes = {
-        RtrPrefixStore.getCurrentPrefixes
+        prefStore.getCurrentPrefixes
       },
       getCurrentSessionId = {
         () => sessionID
@@ -77,8 +70,10 @@ class Main(args: Array[String]) {
     rtrServer
   }
   
-  val rtrServer = runRtrServer()
-  val userInterface = actorSystem.actorOf(Props[UserInterface], "userInteface")
+  val prefixStore = new RtrPrefixStore();
+  val rtrServer = runRtrServer(prefixStore)
+  prefixStore.setServer(rtrServer)
+  val userInterface = actorSystem.actorOf(Props(new UserInterface(prefixStore)), "userInteface")
 }
 
 
