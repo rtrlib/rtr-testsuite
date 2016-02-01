@@ -42,14 +42,15 @@ class UserInterface extends Actor {
   def isValidCommand(line: String) : Boolean = {
     var args = line.split(" ")
     val isValid = args(0) match {
-      case "read" => checkReadCommand(args)
       case "show" => true
       case "quit" => true
+      case "addfile" => checkReadCommand(args)
+      case "removefile" => checkReadCommand(args)
       case "add" => checkPrefixParams(args)
       case "remove" => checkPrefixParams(args)
       case "clear" => true
       case "search" => checkSearchCommand(args)
-      case "load" => true
+      case "load" => args.length == 3
       case _ => false
     }
     return isValid
@@ -84,33 +85,24 @@ class UserInterface extends Actor {
   def executeCommand(line: String) = {
     var args = line.split(" ")
     var success = args(0) match {
-      case "read" => RtrPrefixStore.readPrefixesFromFile(args(1))
       case "show" => RtrPrefixStore.printPrefixes()
       case "quit" => System.exit(1)
-      case "add" => 
-        var prefix = RtrPrefixStore.readPrefix(args(1), args(2), args(3))
-        RtrPrefixStore.prefixSet.add(prefix)
-      case "remove" => 
-        var prefix = RtrPrefixStore.readPrefix(args(1), args(2), args(3))
-        if (RtrPrefixStore.prefixSet.contains(prefix)) {
-          RtrPrefixStore.prefixSet.remove(prefix)
-        } else {
-          println("No prefix removed")
-        }
-      case "clear" => RtrPrefixStore.prefixSet.clear()
+      case "addfile" => RtrPrefixStore.addPrefixesFromFile(args(1))
+      case "removefile" => RtrPrefixStore.removePrefixesFromFile(args(1))
+      case "add" => RtrPrefixStore.addPrefixString(args(1), args(2), args(3))
+      case "remove" => RtrPrefixStore.removePrefixString(args(1), args(2), args(3))
+      case "clear" => RtrPrefixStore.clear()
       case "search" => 
         var _ = args(1) match {
           case "asn" => RtrPrefixStore.searchAsn(args(2))
           case "prefix" => RtrPrefixStore.searchPrefix(args(2))
         }
       case "load" =>
-        //var port : Int = args(2).toInt
-        //val rtrclient = new rtr.RTRClient(args(1), port)
-        val rtrclient = new rtr.RTRClient("rpki-validator.realmv6.org", 8282)
-        rtrclient.sendPdu(new rtr.ResetQueryPdu())
-        var pdus : List[rtr.Pdu] = rtrclient.getResponse()
-        pdus.foreach { x => println(x) }
-        
+        var port : Int = args(2).toInt
+        val rtrclient = new rtr.RTRClient(args(1), port)
+        var pdus : List[models.RtrPrefix] = rtrclient.getAllROAs
+        pdus.foreach { x => RtrPrefixStore.addPrefix(x) }
+        rtrclient.close()
     }
   }
   
