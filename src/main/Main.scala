@@ -42,6 +42,12 @@ object Main {
   }
 }
 
+object SerialNumber {
+  val serialNum = 0;
+  def getSerialNumber() : Int = {
+    return serialNum
+  }
+}
 
 class Main(args: Array[String]) {
   implicit val actorSystem = akka.actor.ActorSystem()
@@ -56,7 +62,7 @@ class Main(args: Array[String]) {
       closeOnError = false,
       sendNotify = false,
       getCurrentCacheSerial = {
-        () => 1
+        () => SerialNumber.getSerialNumber;
       },
       getCurrentRtrPrefixes = {
         RtrPrefixStore.getCurrentPrefixes
