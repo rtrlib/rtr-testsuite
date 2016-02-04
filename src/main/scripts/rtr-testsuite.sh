@@ -33,7 +33,6 @@ EXECUTION_DIR=`dirname "$BASH_SOURCE"`
 cd ${EXECUTION_DIR}
 
 APP_NAME="rtr-testsuite"
-PID_FILE=${APP_NAME}.pid
 
 function error_exit {
     echo -e "[ error ] $1"
@@ -62,7 +61,7 @@ function check_java_version {
   JAVA_VERSION=`${JAVA_CMD} -version 2>&1 | grep version | sed 's/.* version //g'`
   MAJOR_VERSION=`echo ${JAVA_VERSION} | sed 's/"\([[:digit:]]\)\.\([[:digit:]]\).*"/\1\2/g'`
   if (( ${MAJOR_VERSION} < 17 )) ; then
-    error_exit "RPKI validator requires Java 1.7 or greater, your version of java is ${JAVA_VERSION}";
+    error_exit "rtr-testsuite requires Java 1.7 or greater, your version of java is ${JAVA_VERSION}";
   fi
 }
 
@@ -84,83 +83,30 @@ fi
 check_java_version
 
 # See how we're called
-FIRST_ARG="$1"
+RTR_PORT=8282
+if (($# == 1)) ; then 
+    RTR_PORT="$1"
+    case $RTR_PORT in
+        ''|*[!0-9]*) error_exit "Invalid port number";;
+        *) RTR_PORT_OPT="-p ${RTR_PORT}";;
+    esac
+else
+    RTR_PORT_OPT=""
+fi
 shift
 if [[ -n $MODE ]]; then
    #usage
    exit
 fi
 
-# Determine config file location
-#getopts ":c:" OPT_NAME
-#CONFIG_FILE=${OPTARG:-conf/rpki-validator.conf}
-#
-#if [[ ! $CONFIG_FILE =~ .*conf$ ]]; then
-#        error_exit "Configuration file name must end with .conf"
-#fi
-#
-#if [[ ! -r $CONFIG_FILE ]]; then
-#    error_exit "Can't read config file: $CONFIG_FILE"
-#fi
 
-function parse_optional_config_line {
-    local CONFIG_KEY=$1
-    local VALUE=`grep "^$CONFIG_KEY" $CONFIG_FILE | sed 's/#.*//g' | awk -F "=" '{ print $2 }'`
-    eval "$2=$VALUE"
-}
-
-function parse_config_line {
-    local CONFIG_KEY=$1
-    local VALUE=`grep "^$CONFIG_KEY" $CONFIG_FILE | sed 's/#.*//g' | awk -F "=" '{ print $2 }'`
-
-    if [ -z $VALUE ]; then
-        error_exit "Cannot find value for: $CONFIG_KEY in config-file: $CONFIG_FILE"
-    fi
-    eval "$2=$VALUE"
-}
-
-function parse_jvm_options {
-    parse_optional_config_line "jvm.proxy.socks.host" JVM_SOCKS_PROXY_HOST
-    parse_optional_config_line "jvm.proxy.socks.port" JVM_SOCKS_PROXY_PORT
-
-    parse_optional_config_line "jvm.proxy.http.host" JVM_HTTP_PROXY_HOST
-    parse_optional_config_line "jvm.proxy.http.port" JVM_HTTP_PROXY_PORT
-
-    JVM_OPTIONS="-Dapp.name=${APP_NAME} -Dconfig.file=$CONFIG_FILE"
-    if [[ -n $JVM_SOCKS_PROXY_HOST && -n $JVM_SOCKS_PROXY_PORT ]]; then
-        JVM_OPTIONS="$JVM_OPTIONS -DsocksProxyHost=$JVM_SOCKS_PROXY_HOST -DsocksProxyPort=$JVM_SOCKS_PROXY_PORT"
-    elif [[ -n $JVM_HTTP_PROXY_HOST && -n $JVM_HTTP_PROXY_PORT ]]; then
-        JVM_OPTIONS="$JVM_OPTIONS -Dhttp.proxyHost=$JVM_HTTP_PROXY_HOST -Dhttp.proxyPort=$JVM_HTTP_PROXY_PORT"
-    fi
-}
-
-#
-# Determine if the application is already running
-#
-RUNNING="false"
-if [ -e ${PID_FILE} ]; then
-    ps `cat ${PID_FILE}` | grep "\-Dapp.name=${APP_NAME}" >/dev/null 2>&1
-    if [ $? == "0" ]; then
-        RUNNING="true"
-    fi
-fi
-
-
-if [ ${RUNNING} == "true" ]; then
-    error_exit "${APP_NAME} is already running"
-fi
 
 info "Starting ${APP_NAME}..."
 info "writing logs under log directory"
-info "Web user interface is available on port ${HTTP_PORT_VALUE}"
-info "Routers can connect on port ${RTR_PORT_VALUE}"
-
-CLASSPATH=:"$LIB_DIR/*"
-echo ${CLASSPATH}
+info "Routers can connect on port ${RTR_PORT}"
 
 CMDLINE="${JAVA_CMD} ${JAVA_OPTS} \
-         -Dapp.name=${APP_NAME} \
-                 -classpath ${CLASSPATH} main.java.ScalaRunner"
+         -Dapp.name=${APP_NAME} main.java.ScalaRunner ${RTR_PORT_OPT}"
 
 ${CMDLINE}
 exit $?
