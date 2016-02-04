@@ -10,9 +10,6 @@
       <unpack>true</unpack>
       <scope>runtime</scope>
     </dependencySet>
-        <dependencySet>
-            <outputDirectory>lib</outputDirectory>
-        </dependencySet>
     </dependencySets>
     <fileSets>
     	<fileSet>
