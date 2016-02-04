@@ -11,16 +11,20 @@ import rtr.IPv4PrefixPdu
 import rtr.IPv6PrefixPdu
 class RtrPrefixStore {
    private val prefixSet : collection.mutable.Set[RtrPrefix] = collection.mutable.Set()
+   private val currentPrefixSet : collection.mutable.Set[RtrPrefix] = collection.mutable.Set()
    private var rtrServer : Option[RTRServer]= None
    
    private def addPrefix(prefix: RtrPrefix) {
      prefixSet.add(prefix)
+     currentPrefixSet.add(new RtrPrefix(prefix.asn,prefix.prefix,prefix.maxPrefixLength,1,0))
    }
    private def removePrefix(prefix: RtrPrefix) {
      addPrefix(prefix)
+     currentPrefixSet.remove(new RtrPrefix(prefix.asn,prefix.prefix,prefix.maxPrefixLength,1,0))
    }
    def clear() {
      prefixSet.clear()
+     currentPrefixSet.clear()
    }
    
    /* CLI FUNCTIONS */
@@ -89,21 +93,23 @@ class RtrPrefixStore {
       }
     }
    } 
-   
-   def getCurrentPrefixes() : Set[RtrPrefix] = {
+   def getPrefixes() : Set[RtrPrefix] = {
      return prefixSet.toSet
+   }
+   def getCurrentPrefixes() : Set[RtrPrefix] = {
+     return currentPrefixSet.toSet
    }
    
    def printPrefixes() = {
      println("ASN\tPrefix\tMax. Length")
-     prefixSet.foreach { prefix => println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))}
+     currentPrefixSet.foreach { prefix => println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))}
      
    }
    
    def searchAsn(search_str: String) = {
      println("ASN\tPrefix\tMax. Length")
      var asn : Asn = new Asn(search_str.toLong)
-     prefixSet.foreach {
+     currentPrefixSet.foreach {
        prefix => if (asn == prefix.asn) {
          println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))
        }
@@ -112,7 +118,7 @@ class RtrPrefixStore {
    def searchPrefix(search_str: String) = {
      println("ASN\tPrefix\tMax. Length")
      var pref : IpRange = IpRange.parse(search_str)
-     prefixSet.foreach {
+     currentPrefixSet.foreach {
        prefix => if (pref == prefix.prefix) {
          println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))
        }

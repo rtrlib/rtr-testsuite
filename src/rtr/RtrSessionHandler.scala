@@ -39,6 +39,7 @@ import org.jboss.netty.handler.timeout.ReadTimeoutException
 class RtrSessionHandler[T] (remoteAddress: T,
                         getCurrentCacheSerial: () => Int,
                         getCurrentRtrPrefixes: () => Set[RtrPrefix],
+                        getRtrPrefixes: () => Set[RtrPrefix],
                         getCurrentSessionId: () => Pdu.SessionId,
                         hasTrustAnchorsEnabled: () => Boolean) {
 
@@ -129,7 +130,7 @@ class RtrSessionHandler[T] (remoteAddress: T,
     if (sessionId == getCurrentSessionId()) {
       
       var responsePdus: List[Pdu] = List(CacheResponsePdu(sessionId=sessionId))
-      getCurrentRtrPrefixes().foreach { rtrPrefix =>
+      getRtrPrefixes().foreach { rtrPrefix =>
         val prefix: IpRange = rtrPrefix.prefix
         val prefixLength: Int = prefix.getPrefixLength
         val maxLength: Int = rtrPrefix.maxPrefixLength.getOrElse(prefixLength)

@@ -36,6 +36,7 @@ import scala.collection.mutable
 
 class RtrSessions[T](getCurrentCacheSerial: () => Int,
                      getCurrentRtrPrefixes: () => Set[RtrPrefix],
+                     getRtrPrefixes: () => Set[RtrPrefix],
                      getCurrentSessionId: () => Pdu.SessionId,
                      hasTrustAnchorsEnabled: () => Boolean) {
 
@@ -44,7 +45,7 @@ class RtrSessions[T](getCurrentCacheSerial: () => Int,
   def allClientData = handlers.values.map(_.sessionData)
 
   def connect(id: T) {
-    val handler = handlers.getOrElseUpdate(id, new RtrSessionHandler[T](id, getCurrentCacheSerial, getCurrentRtrPrefixes, getCurrentSessionId, hasTrustAnchorsEnabled))
+    val handler = handlers.getOrElseUpdate(id, new RtrSessionHandler[T](id, getCurrentCacheSerial, getCurrentRtrPrefixes, getRtrPrefixes, getCurrentSessionId, hasTrustAnchorsEnabled))
     handler.connect()
   }
 

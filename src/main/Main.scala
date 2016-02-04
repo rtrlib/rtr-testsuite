@@ -60,6 +60,9 @@ class Main(args: Array[String]) {
       getCurrentRtrPrefixes = {
         prefStore.getCurrentPrefixes
       },
+      getRtrPrefixes = {
+        prefStore.getPrefixes
+      },
       getCurrentSessionId = {
         () => sessionID
       },
