@@ -17,14 +17,20 @@ class RtrPrefixStore {
    private val currentPrefixSet : collection.mutable.Set[RtrPrefix] = collection.mutable.Set()
    private var rtrServer : Option[RTRServer]= None
    
-   private def addPrefix(prefix: RtrPrefix) {
-     prefixSet.add(prefix)
-     currentPrefixSet.add(new RtrPrefix(prefix.asn,prefix.prefix,prefix.maxPrefixLength,1,0))
+   private def addAnnouncement(prefix : RtrPrefix) : Boolean = {
+     var legit = currentPrefixSet.add(new RtrPrefix(prefix.asn,prefix.prefix,prefix.maxPrefixLength,1,0))
+     if(legit)
+       prefixSet.add(prefix)
+     return legit
    }
-   private def removePrefix(prefix: RtrPrefix) {
-     addPrefix(prefix)
-     currentPrefixSet.remove(new RtrPrefix(prefix.asn,prefix.prefix,prefix.maxPrefixLength,1,0))
+   
+   private def addWithdrawal(prefix : RtrPrefix) : Boolean = {
+     val legit = currentPrefixSet.remove(new RtrPrefix(prefix.asn,prefix.prefix,prefix.maxPrefixLength,1,0))
+     if(legit)
+       prefixSet.add(prefix)
+     return legit
    }
+
    def clear() {
      prefixSet.clear()
      currentPrefixSet.clear()
@@ -32,27 +38,68 @@ class RtrPrefixStore {
    
    /* CLI FUNCTIONS */
    def addPrefixString(asn_str: String, prefix_str: String, maxLen_str: String) {
-     RTRServer.incSerialNumber()
      var sN = RTRServer.getSerialNumber()
      var prefix :RtrPrefix = readPrefix(asn_str, prefix_str, maxLen_str,1,sN)
-     addPrefix(prefix)
-     rtrServer.get.serialNotify()
+     if(prefix == null)
+       return 
+     if(addAnnouncement(prefix)){
+       RTRServer.incSerialNumber()
+       rtrServer.get.serialNotify()
+     }
    }
    def removePrefixString(asn_str: String, prefix_str: String, maxLen_str: String) {
-     RTRServer.incSerialNumber()
-     var sN = RTRServer.getSerialNumber()
+     var sN = RTRServer.getSerialNumber() + 1
      var prefix :RtrPrefix = readPrefix(asn_str, prefix_str, maxLen_str,0,sN)
-     removePrefix(prefix)
-     rtrServer.get.serialNotify()
+     if(prefix == null)
+       return 
+     if(addWithdrawal(prefix)){
+       RTRServer.incSerialNumber()
+       rtrServer.get.serialNotify()
+     }
    }
+
+   /*  CLI FUNCTIONS BULK */
+   def addPrefixesFromFile(filename: String) = {
+     var sN = RTRServer.getSerialNumber() + 1
+     if(readPrefixesFromFile(filename,1,sN)){
+       RTRServer.incSerialNumber()
+       rtrServer.get.serialNotify()
+     }
+   }
+   
+   def removePrefixesFromFile(filename: String) = {
+     var sN = RTRServer.getSerialNumber() + 1
+     if(readPrefixesFromFile(filename,0,sN)){
+       RTRServer.incSerialNumber()
+       rtrServer.get.serialNotify()
+     }
+   }
+
+   private def readPrefixesFromFile(filename: String,flags : Byte, sN : Int) = {
+    val lines = Source.fromFile(convertFilepathTilde(filename)).getLines
+    var legit : Boolean = false
+    while(lines.hasNext){
+      var line = lines.next()
+      if(line.length() > 0 && line(0) != '#'){
+        val prefix = readPrefixLine(line, flags, sN)
+        if(flags == 1){
+          legit = addAnnouncement(prefix) || legit
+        }
+        else{
+          legit = addWithdrawal(prefix) || legit
+        }
+      }
+    }
+    legit
+   } 
    
    def addPrefixes(prefixes : List[Pdu]) {
      RTRServer.incSerialNumber()
      var sN = RTRServer.getSerialNumber()
      prefixes.foreach { pdu =>
        pdu match {
-         case pdu : IPv4PrefixPdu => addPrefix(convertIPv4ToRtrPrefix(pdu,sN))
-         case pdu : IPv6PrefixPdu => addPrefix(convertIPv6ToRtrPrefix(pdu,sN))
+         case pdu : IPv4PrefixPdu => addAnnouncement(convertIPv4ToRtrPrefix(pdu,sN))
+         case pdu : IPv6PrefixPdu => addAnnouncement(convertIPv6ToRtrPrefix(pdu,sN))
          case _ =>
        }
      }
@@ -73,29 +120,7 @@ class RtrPrefixStore {
     new RtrPrefix(asn,prefix,Some(maxLen),pdu.flags,sN)
   }
    
-   /*  CLI FUNCTIONS BULK */
-   def addPrefixesFromFile(filename: String) = {
-     RTRServer.incSerialNumber()
-     var sN = RTRServer.getSerialNumber()
-     readPrefixesFromFile(filename,1,sN)
-   }
-   
-   def removePrefixesFromFile(filename: String) = {
-     RTRServer.incSerialNumber()
-     var sN = RTRServer.getSerialNumber()
-     readPrefixesFromFile(filename,0,sN)
-   }
   
-   private def readPrefixesFromFile(filename: String,flags : Byte, sN : Int) = {
-    val lines = Source.fromFile(convertFilepathTilde(filename)).getLines
-    while(lines.hasNext){
-      var line = lines.next()
-      if(line.length() > 0 && line(0) != '#'){
-        val prefix = readPrefixLine(line, flags, sN)
-        addPrefix(prefix)
-      }
-    }
-   } 
    def getPrefixes() : Set[RtrPrefix] = {
      return prefixSet.toSet
    }
@@ -104,8 +129,8 @@ class RtrPrefixStore {
    }
    
    def printPrefixes() = {
-     println("ASN\tPrefix\tMax. Length")
-     currentPrefixSet.foreach { prefix => println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))}
+     println(String.format("%-10s\t%-35s\t%-6s","ASN","Prefix", "MaxLen"))
+     currentPrefixSet.foreach { prefix => println("%-10s\t%-35s\t%-6s".format(prefix.asn,prefix.prefix,prefix.maxPrefixLength.getOrElse("Missing")))}
      
    }
    
@@ -123,7 +148,7 @@ class RtrPrefixStore {
      var pref : IpRange = IpRange.parse(search_str)
      currentPrefixSet.foreach {
        prefix => if (pref == prefix.prefix) {
-         println(prefix.asn + "\t" + prefix.prefix + "\t" + prefix.maxPrefixLength.getOrElse("Missing"))
+         println("%-10s\t%-35s\t%7s".format(prefix.asn,prefix.prefix,prefix.maxPrefixLength.getOrElse("Missing")))
        }
      }
    }
@@ -135,10 +160,15 @@ class RtrPrefixStore {
    }
    
    private def readPrefix(asn_str: String, prefix_str: String, maxLen_str: String, flags : Byte, serialNum : Int) : RtrPrefix = {
+     try {
      var asn : Asn = new Asn(asn_str.toLong)
      var prefix : IpRange = IpRange.parse(prefix_str)
      var maxLen : Int = maxLen_str.toInt
      new RtrPrefix(asn, prefix, Some(maxLen),flags,serialNum)
+     }
+     catch {
+       case e: IllegalArgumentException => println("Illegal argument");null
+     }
    }
    
   def convertFilepathTilde(path: String) : String = {
