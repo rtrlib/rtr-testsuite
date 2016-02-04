@@ -27,15 +27,46 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package models
+package main.scala.rtr
 
-import scalaz._
-import Scalaz._
-import net.ripe.ipresource.{ IpRange, Asn }
-import lib.NumberResources._
+import main.scala.models.RtrPrefix
+import java.lang.Throwable
+import scala.collection.mutable
 
-case class RtrPrefix(asn: Asn, prefix: IpRange, maxPrefixLength: Option[Int] = None, flags : Byte, serialNumber : Int) {
-  val interval = NumberResourceInterval(prefix.getStart, prefix.getEnd)
-  def effectiveMaxPrefixLength = maxPrefixLength.getOrElse(prefix.getPrefixLength)
+
+class RtrSessions[T](getCurrentCacheSerial: () => Int,
+                     getCurrentRtrPrefixes: () => Set[RtrPrefix],
+                     getRtrPrefixes: () => Set[RtrPrefix],
+                     getCurrentSessionId: () => Pdu.SessionId,
+                     hasTrustAnchorsEnabled: () => Boolean) {
+
+  private val handlers = mutable.HashMap[T, RtrSessionHandler[T]]()
+
+  def allClientData = handlers.values.map(_.sessionData)
+
+  def connect(id: T) {
+    val handler = handlers.getOrElseUpdate(id, new RtrSessionHandler[T](id, getCurrentCacheSerial, getCurrentRtrPrefixes, getRtrPrefixes, getCurrentSessionId, hasTrustAnchorsEnabled))
+    handler.connect()
+  }
+
+  def disconnect(id: T) {
+    handlerFor(id).disconnect()
+  }
+
+  def serialNotify(serial: Int) = {
+    val pdu = new SerialNotifyPdu(getCurrentSessionId(), serial)
+    handlers.values.foreach(_.serialNotify(pdu))
+    pdu
+  }
+
+  def responseForRequest(id: T, request: Either[BadData, Pdu]) = {
+    handlerFor(id).processRequest(request)
+  }
+
+  def determineErrorPdu(id: T, cause: Throwable): Pdu = {
+    handlerFor(id).determineErrorPdu(cause)
+  }
+
+  
+  private def handlerFor(id: T) = handlers.get(id).get
 }
-

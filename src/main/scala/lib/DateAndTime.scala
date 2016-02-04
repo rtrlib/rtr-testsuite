@@ -27,56 +27,38 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package main
+package main.scala.lib
 
-import rtr.RTRServer
-import models.RtrPrefix
-import akka.actor.Props
-import net.ripe.ipresource._
-import scala.util.Random
-object Main {
+import org.joda.time._
+import org.joda.time.format.PeriodFormat
+import org.joda.time.format.DateTimeFormat
+import java.util.Locale
 
-  def main(args: Array[String]): Unit = {
-    println("RTRTestSuite")
-    new Main(args)
+object DateAndTime {
+  def locale = new Locale("en", "UK")
+
+  def dateTimeFormatter = DateTimeFormat.fullDateTime().withLocale(locale)
+  def periodFormatter = PeriodFormat.getDefault.withLocale(locale)
+
+  def formatDateTime(datetime: DateTime) = datetime.toString(dateTimeFormatter)
+
+  def periodInWords(period: Period, number: Int = 2): String = periodFormatter.print(keepMostSignificantPeriodFields(period, number))
+
+  def keepMostSignificantPeriodFields(period: Period, number: Int): Period = {
+    val values = period.getValues
+    val mostSignificantField = values.indexWhere(_ != 0)
+    if (mostSignificantField < 0) {
+      period
+    } else {
+      val result = new MutablePeriod()
+      for (i <- mostSignificantField.until(mostSignificantField + number).intersect(values.indices)) {
+        result.setValue(i, values(i))
+      }
+      result.toPeriod
+    }
+  }
+
+  implicit object DateTimeOrdering extends Ordering[DateTime] {
+    override def compare(x: DateTime, y: DateTime) = x.compareTo(y)
   }
 }
-
-class Main(args: Array[String]) {
-  implicit val actorSystem = akka.actor.ActorSystem()
-  var port : Int = 8282
-  if (args.length >= 2 && args(0) == "-p"){
-    port = args(1).toInt
-  }
-  private def runRtrServer(prefStore : RtrPrefixStore): RTRServer = {
-    var sessionID = Random.nextInt(65536).toShort
-    val rtrServer = new RTRServer(
-      port = port,
-      closeOnError = false,
-      sendNotify = false,
-      getCurrentCacheSerial = {
-        () => RTRServer.getSerialNumber;
-      },
-      getCurrentRtrPrefixes = {
-        prefStore.getCurrentPrefixes
-      },
-      getRtrPrefixes = {
-        prefStore.getPrefixes
-      },
-      getCurrentSessionId = {
-        () => sessionID
-      },
-      hasTrustAnchorsEnabled = {
-        () => false
-      })
-    rtrServer.startServer()
-    rtrServer
-  }
-  
-  val prefixStore = new RtrPrefixStore();
-  val rtrServer = runRtrServer(prefixStore)
-  prefixStore.setServer(rtrServer)
-  val userInterface = actorSystem.actorOf(Props(new UserInterface(prefixStore)), "userInteface")
-}
-
-

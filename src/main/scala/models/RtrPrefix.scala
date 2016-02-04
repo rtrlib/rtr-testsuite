@@ -27,18 +27,15 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package lib
+package main.scala.models
 
-import DateAndTime._
-import org.joda.time.{DateTime, Period}
+import scalaz._
+import Scalaz._
+import net.ripe.ipresource.{ IpRange, Asn }
+import main.scala.lib.NumberResources._
 
-abstract class ValueAndTime[T](var value: T) {
-  var time: DateTime = new DateTime()
-
-  def apply(x: T) {
-    value = x
-    time = new DateTime()
-  }
-
-  override def toString = value.toString + " [" + periodInWords(new Period(time, new DateTime())) + " ago]"
+case class RtrPrefix(asn: Asn, prefix: IpRange, maxPrefixLength: Option[Int] = None, flags : Byte, serialNumber : Int) {
+  val interval = NumberResourceInterval(prefix.getStart, prefix.getEnd)
+  def effectiveMaxPrefixLength = maxPrefixLength.getOrElse(prefix.getPrefixLength)
 }
+

@@ -27,7 +27,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package rtr
+package main.scala.rtr
 import org.jboss.netty.bootstrap.ClientBootstrap
 import java.util.concurrent.Executors
 import org.jboss.netty.channel._
@@ -35,7 +35,7 @@ import org.jboss.netty.channel.socket.nio.NioClientSocketChannelFactory
 import java.net.InetSocketAddress
 import grizzled.slf4j.Logger
 import org.jboss.netty.handler.codec.frame.LengthFieldBasedFrameDecoder
-import models.RtrPrefix
+import main.scala.models.RtrPrefix
 
 class RTRClient(val host: String, val port: Int) {
 
@@ -121,7 +121,7 @@ class RTRClient(val host: String, val port: Int) {
   }
   
   def getAllROAs: List[Pdu] = {
-    sendPdu(new rtr.ResetQueryPdu())
+    sendPdu(new ResetQueryPdu())
     var waited: Int = 0
     while(!receivedEndOfData && waited < 100000) {
       Thread.sleep(5)

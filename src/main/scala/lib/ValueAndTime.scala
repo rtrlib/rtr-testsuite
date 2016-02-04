@@ -27,38 +27,18 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package lib
+package main.scala.lib
 
-import org.joda.time._
-import org.joda.time.format.PeriodFormat
-import org.joda.time.format.DateTimeFormat
-import java.util.Locale
+import DateAndTime._
+import org.joda.time.{DateTime, Period}
 
-object DateAndTime {
-  def locale = new Locale("en", "UK")
+abstract class ValueAndTime[T](var value: T) {
+  var time: DateTime = new DateTime()
 
-  def dateTimeFormatter = DateTimeFormat.fullDateTime().withLocale(locale)
-  def periodFormatter = PeriodFormat.getDefault.withLocale(locale)
-
-  def formatDateTime(datetime: DateTime) = datetime.toString(dateTimeFormatter)
-
-  def periodInWords(period: Period, number: Int = 2): String = periodFormatter.print(keepMostSignificantPeriodFields(period, number))
-
-  def keepMostSignificantPeriodFields(period: Period, number: Int): Period = {
-    val values = period.getValues
-    val mostSignificantField = values.indexWhere(_ != 0)
-    if (mostSignificantField < 0) {
-      period
-    } else {
-      val result = new MutablePeriod()
-      for (i <- mostSignificantField.until(mostSignificantField + number).intersect(values.indices)) {
-        result.setValue(i, values(i))
-      }
-      result.toPeriod
-    }
+  def apply(x: T) {
+    value = x
+    time = new DateTime()
   }
 
-  implicit object DateTimeOrdering extends Ordering[DateTime] {
-    override def compare(x: DateTime, y: DateTime) = x.compareTo(y)
-  }
+  override def toString = value.toString + " [" + periodInWords(new Period(time, new DateTime())) + " ago]"
 }

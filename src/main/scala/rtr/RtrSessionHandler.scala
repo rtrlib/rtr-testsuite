@@ -27,12 +27,12 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package rtr
+package main.scala.rtr
 
 import net.ripe.ipresource.{Ipv6Address, Ipv4Address, Asn, IpRange}
-import models.RtrPrefix
+import main.scala.models.RtrPrefix
 import java.net.InetSocketAddress
-import lib.ValueAndTime
+import main.scala.lib.ValueAndTime
 import org.jboss.netty.handler.codec.frame.{TooLongFrameException, CorruptedFrameException}
 import org.jboss.netty.handler.timeout.ReadTimeoutException
 

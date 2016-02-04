@@ -27,46 +27,57 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package rtr
+package main.scala
 
-import models.RtrPrefix
-import java.lang.Throwable
-import scala.collection.mutable
+import main.scala.rtr.RTRServer
+import main.scala.models.RtrPrefix
+import akka.actor.Props
+import net.ripe.ipresource._
+import util.Random
+import main.scala.UserInterface
+object Main {
 
-
-class RtrSessions[T](getCurrentCacheSerial: () => Int,
-                     getCurrentRtrPrefixes: () => Set[RtrPrefix],
-                     getRtrPrefixes: () => Set[RtrPrefix],
-                     getCurrentSessionId: () => Pdu.SessionId,
-                     hasTrustAnchorsEnabled: () => Boolean) {
-
-  private val handlers = mutable.HashMap[T, RtrSessionHandler[T]]()
-
-  def allClientData = handlers.values.map(_.sessionData)
-
-  def connect(id: T) {
-    val handler = handlers.getOrElseUpdate(id, new RtrSessionHandler[T](id, getCurrentCacheSerial, getCurrentRtrPrefixes, getRtrPrefixes, getCurrentSessionId, hasTrustAnchorsEnabled))
-    handler.connect()
+  def main(args: Array[String]): Unit = {
+    println("RTRTestSuite")
+    new Main(args)
   }
-
-  def disconnect(id: T) {
-    handlerFor(id).disconnect()
-  }
-
-  def serialNotify(serial: Int) = {
-    val pdu = new SerialNotifyPdu(getCurrentSessionId(), serial)
-    handlers.values.foreach(_.serialNotify(pdu))
-    pdu
-  }
-
-  def responseForRequest(id: T, request: Either[BadData, Pdu]) = {
-    handlerFor(id).processRequest(request)
-  }
-
-  def determineErrorPdu(id: T, cause: Throwable): Pdu = {
-    handlerFor(id).determineErrorPdu(cause)
-  }
-
-  
-  private def handlerFor(id: T) = handlers.get(id).get
 }
+
+class Main(args: Array[String]) {
+  implicit val actorSystem = akka.actor.ActorSystem()
+  var port : Int = 8282
+  if (args.length >= 2 && args(0) == "-p"){
+    port = args(1).toInt
+  }
+  private def runRtrServer(prefStore : RtrPrefixStore): RTRServer = {
+    var sessionID = Random.nextInt(65536).toShort
+    val rtrServer = new RTRServer(
+      port = port,
+      closeOnError = false,
+      sendNotify = false,
+      getCurrentCacheSerial = {
+        () => RTRServer.getSerialNumber;
+      },
+      getCurrentRtrPrefixes = {
+        prefStore.getCurrentPrefixes
+      },
+      getRtrPrefixes = {
+        prefStore.getPrefixes
+      },
+      getCurrentSessionId = {
+        () => sessionID
+      },
+      hasTrustAnchorsEnabled = {
+        () => false
+      })
+    rtrServer.startServer()
+    rtrServer
+  }
+  
+  val prefixStore = new RtrPrefixStore();
+  val rtrServer = runRtrServer(prefixStore)
+  prefixStore.setServer(rtrServer)
+  val userInterface = actorSystem.actorOf(Props(new UserInterface(prefixStore)), "userInteface")
+}
+
+

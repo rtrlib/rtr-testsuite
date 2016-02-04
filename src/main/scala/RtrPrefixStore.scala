@@ -1,14 +1,17 @@
-package main
+package main.scala
 
-import models.RtrPrefix
-import rtr.RTRServer
-import scala.io.Source
-import net.ripe.ipresource._
-import java.nio.file.{Paths, Files}
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.io.File
-import models.RtrPrefix
-import rtr.IPv4PrefixPdu
-import rtr.IPv6PrefixPdu
+import main.scala.models.RtrPrefix
+import main.scala.rtr.RTRServer
+import main.scala.rtr.Pdu
+import io.Source
+import net.ripe.ipresource._
+
+import main.scala.models.RtrPrefix
+import main.scala.rtr.IPv4PrefixPdu
+import main.scala.rtr.IPv6PrefixPdu
 class RtrPrefixStore {
    private val prefixSet : collection.mutable.Set[RtrPrefix] = collection.mutable.Set()
    private val currentPrefixSet : collection.mutable.Set[RtrPrefix] = collection.mutable.Set()
@@ -43,7 +46,7 @@ class RtrPrefixStore {
      rtrServer.get.serialNotify()
    }
    
-   def addPrefixes(prefixes : List[rtr.Pdu]) {
+   def addPrefixes(prefixes : List[Pdu]) {
      RTRServer.incSerialNumber()
      var sN = RTRServer.getSerialNumber()
      prefixes.foreach { pdu =>

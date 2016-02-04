@@ -1,4 +1,5 @@
-import main.Main;
+package main.java;
+import main.scala.Main;
 
 
 public class ScalaRunner {

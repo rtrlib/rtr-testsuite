@@ -27,7 +27,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package rtr
+package main.scala.rtr
 
 import org.jboss.netty.bootstrap.ServerBootstrap
 import java.util.concurrent.Executors
@@ -41,8 +41,8 @@ import org.jboss.netty.util.HashedWheelTimer
 import grizzled.slf4j.{Logger, Logging}
 import org.jboss.netty.channel.group.{ ChannelGroup, DefaultChannelGroup }
 import org.jboss.netty.channel.ChannelHandler.Sharable
-import models.RtrPrefix
 import java.net.{SocketAddress, InetSocketAddress}
+import main.scala.models.RtrPrefix
 
 
 object RTRServer {

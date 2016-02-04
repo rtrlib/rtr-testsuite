@@ -27,7 +27,7 @@
  * ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  * POSSIBILITY OF SUCH DAMAGE.
  */
-package rtr
+package main.scala.rtr
 
 import org.jboss.netty.buffer.ChannelBuffer
 import org.jboss.netty.buffer.ChannelBuffers
@@ -36,7 +36,7 @@ import net.ripe.ipresource._
 import java.math.BigInteger
 import scala.util.Random
 import java.net.SocketAddress
-import models.RtrPrefix
+import main.scala.models.RtrPrefix
 
 sealed trait Pdu {
   def protocolVersion: Byte = 0

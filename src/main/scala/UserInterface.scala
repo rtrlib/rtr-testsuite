@@ -1,11 +1,12 @@
-package main
+package main.scala
 import akka.actor.Actor
-import akka.actor.Props
 import jline.console.ConsoleReader
 import jline.console.completer.FileNameCompleter
 import jline.console.completer.ArgumentCompleter
 import jline.console.completer.StringsCompleter
-import java.nio.file.{Paths, Files}
+import java.nio.file.Files
+import java.nio.file.Paths
+import main.scala.RtrPrefixStore
 class UserInterface(prefStore : RtrPrefixStore) extends Actor {
   
   interactiveShell()
