@@ -15,6 +15,13 @@ maven package assembly:single
 ```
 which should result in a .tar.gz file that includes everything needed to run except a java runtime.
 
+Alternatively you can download the [latest release](https://github.com/rtrlib/rtr-testsuite/releases/latest) and run it like this:
+
+```
+tar -xzf RTRTestsuite-[version]-SNAPSHOT-dist.tar.gz
+cd RTRTestsuite-[version]-SNAPSHOT
+./rtr-testsuite.sh <port>
+```
 
 ## Usage
 ```./rtr-testsuite.sh <port>``` 
